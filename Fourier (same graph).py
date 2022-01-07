@@ -7,13 +7,13 @@ from numpy import pi
 
 ## User Inputs ##
 T = 10   # period
-N = 100  # order
-FPS = 60  # fps of video
-Speed = 1/2  # speed
+N = 10 # order
+FPS = 24  # fps of video
+Speed = 1  # speed
 Bitrate = 10**4  # Bitrate
 ## Converts Image to grayscale and provides xlist and ylist ##
 # Converting into grayscale
-im = cv.imread('abstract faces.jpg')
+im = cv.imread('woman.jpg')
 imgray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 ret, thresh = cv.threshold(imgray, 127, 255, 0)
 contours, hierarchy = cv.findContours(
@@ -49,12 +49,13 @@ coefficients = []   # matrix to store coefficients
 for n in range(-N, N+1):  # orders in c_0, c_1, c_-1, ... c_n, c_-n
     def integrand(t): return f(t) * np.exp(-1j*(2*pi/T)*t*n)
     coefficients.append(
-        (1/T)*integrate.quad_vec(integrand, 0, T, limit=50, full_output=True)[0])
+        (1/T)*integrate.quad_vec(integrand, 0, T, limit=300, full_output=True)[0])
     # integrand_real = lambda t: np.real(f(t) * np.exp(-1j*(2*pi/T)*t*n))
     # integrand_imag = lambda t: np.imag(f(t) * np.exp(-1j*(2*pi/T)*t*n))
     # coefficients.append(
     #     (1/T)*integrate.quad(integrand_real, 0, T, limit=100, full_output=True)[0] +
     #     (1j/T)*integrate.quad(integrand_imag, 0, T, limit=100, full_output=True)[0])
+    print(coefficients[n + N], (1/T)*integrate.quad_vec(integrand, 0, T, limit=300, full_output=True)[1])
     print(str(round(((len(coefficients) - 1)/(2*N))*100, 2)) +
           "% Done with coefficients...")
 

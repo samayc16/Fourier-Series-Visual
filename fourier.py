@@ -7,16 +7,16 @@ from numpy import pi
 
 
 ## User Inputs ##
-T = 30   # period
-N = 400  # order
-FPS = 60  # fps of video
+T = 10   # period
+N = 2  # order
+FPS = 24  # fps of video
 Speed = 1  # speed
 Bitrate = 10**4  # Bitrate
 
 
 ## Converts Image to grayscale and provides xlist and ylist ##
 # Converting into grayscale
-im = cv.imread('website.jpg')
+im = cv.imread('abstract faces.jpg')
 imgray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 ret, thresh = cv.threshold(imgray, 127, 255, 0)
 contours, hierarchy = cv.findContours(
@@ -36,7 +36,7 @@ ylist = ylist - (np.max(ylist) + np.min(ylist))/2
 
 # Creates plot and plots translucent outline of image
 fig, ax = plt.subplots()
-ax.set_facecolor((1, 1, 1, 0))
+ax.set_facecolor((35/255, 41/255, 71/255, 1))
 ax.plot(xlist, ylist, color=(0, 0, 0, 0.10))
 
 
@@ -47,7 +47,7 @@ f_n = xlist + 1j*ylist
 # Returns the linear approximation given two points at time
 def f(t):
     n = t/T * len(xlist)
-    return np.interp(n, range(len(xlist)), f_n, T)
+    return np.interp(n, range(len(xlist)), f_n, period=T)
 
 
 ## f(t) => f(ω) ##
@@ -56,7 +56,7 @@ coefficients = []   # matrix to store coefficients
 for n in range(-N, N+1):  # orders in c_0, c_1, c_-1, ... c_n, c_-n
     integrand = lambda t: f(t) * np.exp(-1j*(2*pi/T)*t*n)
     coefficients.append(
-        (1/T)*integrate.quad_vec(integrand, 0, T, limit=150, full_output=True)[0])
+        (1/T)*integrate.quad_vec(integrand, 0, T, limit=100, full_output=True)[0])
     # def integrand_real(t): return np.real(f(t) * np.exp(-1j*(2*pi/T)*t*n))
     # def integrand_imag(t): return np.imag(f(t) * np.exp(-1j*(2*pi/T)*t*n))
     # coefficients.append(
@@ -72,7 +72,7 @@ circles = [ax.plot([], [], color=(
 lines = [ax.plot([], [], color=(
     0, 0, 0, 0.25),  linestyle='solid')[0]for i in range(2*N + 1)]  # stores lines drawn each frame
 ftx, fty = [], []  # stores points' components drawn
-drawn_points = ax.plot(ftx, fty, color=(24/255, 147/255, 238/255, 1),
+drawn_points = ax.plot(ftx, fty, color=(1, 1, 1, 1),
                        linestyle='solid', linewidth=0.5)[0]  # saves points drawn by tip
 current_point = ax.plot([], [], color=(1, 49/255, 49/255, 0.83))[0]
 theta = np.linspace(0, 2 * pi, 200)
@@ -101,8 +101,9 @@ def draw_f(t):      # function to draw frames of animation
     ftx.append(current_x)
     fty.append(current_y)
     drawn_points.set_data(ftx, fty)
-    current_point.set_data(current_x, current_y)
-    print(str(round(((t+T)/(2*T))*100, 2)) + "% Done with frames...")
+    current_point.set_data([current_x], [current_y])
+    print(str(round(((t+T)/(2*T))*100, 3)) + "% Done with frames...")
+    ax.set_facecolor((35/255, 41/255, 71/255, 1))
     return [ax]
 
 
@@ -112,6 +113,7 @@ ax.set_xlim(min(xlist) - 200, max(xlist) + 200)
 ax.set_ylim(min(ylist) - 400, max(ylist) + 400)
 ax.set_aspect(1)
 ax.set_axis_off()
+ax.set_facecolor((35/255, 41/255, 71/255, 1))
 
 # Saves to video
 Writer = animate.writers['ffmpeg']
@@ -120,5 +122,5 @@ writer = Writer(fps=FPS, metadata=dict(
 print("Endcoding started")
 time = np.linspace(-T, T, round(2*T*FPS*(Speed**-1)))
 anim = animate.FuncAnimation(fig, draw_f, frames=time, interval=5)
-anim.save('fourier.mp4', writer=writer)
-print("-------------------------------\nCompleted: fourier.mp4")
+anim.save('website.mp4', writer=writer)
+print("-------------------------------\nCompleted: website.mp4")
