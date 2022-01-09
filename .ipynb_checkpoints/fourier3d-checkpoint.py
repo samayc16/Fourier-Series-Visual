@@ -73,7 +73,7 @@ ax1.set_yticks([])
 ax1.set_zticks([])
 
 
-## f[n] => f(t) => Re{f(t)}, Im{f(t)} ##
+## f[n] => f(t) ##
 # Creating f[n] as a complex exponentional
 f_n = xlist + 1j * ylist
 
@@ -85,20 +85,20 @@ def f(t):
 
 # Store fourier coefficients
 coefficients = [2 +2j, 3-4j, -2+8j, 9-4j, -3+2j, 4-8j, -8-9j, -9-9j, 4-2j]  # array to store coefficients
-for n in range(-N, N + 1):  # orders in c₀, c₁, c₋₁, ... cₙ, c_₋ₙ
-    integrand = lambda t: f(t) * np.exp(-1j * (2 * pi / T) * t * n)
-    coefficients.append(
-        (1 / T) * integrate.quad_vec(integrand, 0, T, limit=500, full_output=True)[0]
-    )
-    # def integrand_real(t): return np.real(f(t) * np.exp(-1j*(2*pi/T)*t*n))
-    # def integrand_imag(t): return np.imag(f(t) * np.exp(-1j*(2*pi/T)*t*n))
-    # coefficients.append(
-    #     (1/T)*integrate.quad(integrand_real, 0, T, limit=100, full_output=True)[0] +
-    #     (1j/T)*integrate.quad(integrand_imag, 0, T, limit=100, full_output=True)[0])
-    print(
-        str(round(((len(coefficients) - 1) / (2 * N)) * 100, 3))
-        + "% Done with coefficients..."
-    )
+# for n in range(-N, N + 1):  # orders in c₀, c₁, c₋₁, ... cₙ, c_₋ₙ
+#     integrand = lambda t: f(t) * np.exp(-1j * (2 * pi / T) * t * n)
+#     coefficients.append(
+#         (1 / T) * integrate.quad_vec(integrand, 0, T, limit=500, full_output=True)[0]
+#     )
+#     # def integrand_real(t): return np.real(f(t) * np.exp(-1j*(2*pi/T)*t*n))
+#     # def integrand_imag(t): return np.imag(f(t) * np.exp(-1j*(2*pi/T)*t*n))
+#     # coefficients.append(
+#     #     (1/T)*integrate.quad(integrand_real, 0, T, limit=100, full_output=True)[0] +
+#     #     (1j/T)*integrate.quad(integrand_imag, 0, T, limit=100, full_output=True)[0])
+#     print(
+#         str(round(((len(coefficients) - 1) / (2 * N)) * 100, 3))
+#         + "% Done with coefficients..."
+#     )
 
 ## f(t) => Re{f(t)}, Im{f(t)} ##
 # Plots for X and Y components of Fourier series are made
@@ -149,6 +149,20 @@ ax3.grid(False)
 ax3.set_xticks([])
 ax3.set_yticks([])
 
+## Error Plotting Prep##
+ax4 = fig.add_subplot(2, 3, 6)
+ax4.set_xlim(-T / 2, T + T / 2)
+ax4.set_ylim(-1, 5)
+error = []
+error_plot = ax4.plot([], [])[0]
+zero_line = ax4.plot(
+    time, np.zeros(len(time)), color=(0, 0, 0, 0.5), linestyle="dashed"  # 0% error line
+)
+
+one_line = ax4.plot(
+    time, np.ones(len(time)), color=(1, 0, 0, 0.5), linestyle="dashed"
+)  # 100% error line
+
 ## F⁻¹{F{f(t)}} (Approximation of f(t) via our Fourier Series) ##
 ax5 = fig.add_subplot(2, 3, 2, projection="3d")
 spirals = [
@@ -190,21 +204,6 @@ fs_only = ax6.plot([], [], [])[0]  # Stores points of Fourier
 fs_only_point = ax6.plot([], [], [], color=(0, 1, 0, 0.5), marker=".")[
     0
 ]  # Draws only current point
-
-# Error Plotting Prep
-ax4 = fig.add_subplot(2, 3, 6)
-ax4.set_xlim(-T / 2, T + T / 2)
-ax4.set_ylim(-1, 5)
-error = []
-error_plot = ax4.plot([], [])[0]
-zero_line = ax4.plot(
-    time, np.zeros(len(time)), color=(0, 0, 0, 0.5), linestyle="dashed"  # 0% error line
-)
-
-one_line = ax4.plot(
-    time, np.ones(len(time)), color=(1, 0, 0, 0.5), linestyle="dashed"
-)  # 100% error line
-
 
 # Draws Fourier Series, Approximation, and Error
 def draw_f(t):
