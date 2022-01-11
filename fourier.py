@@ -1,18 +1,20 @@
+import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as animate
 import numpy as np
 import cv2 as cv
 from scipy import integrate
 from numpy import pi
-
+from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
 
 ## User Inputs ##
 T = 15  # period
 N = 1000  # order
 FPS = 60  # fps of video
 Speed = 1  # speed
-Bitrate = 10 ** 4  # Bitrate
-
+Bitrate = 10 ** 12  # Bitrate
+coefficients = []
 
 ## Converts Image to grayscale and provides xlist and ylist ##
 # Converting into grayscale
@@ -37,7 +39,6 @@ ylist = ylist - (np.max(ylist) + np.min(ylist)) / 2
 fig, ax = plt.subplots()
 ax.plot(xlist, ylist, color=(0, 0, 0, 0.10))
 
-
 ## Create f[n] => f(t) ##
 # Creating f[n] as a complex exponentional
 f_n = xlist + 1j * ylist
@@ -48,40 +49,12 @@ def f(t):
     return np.interp(n, range(len(xlist)), f_n, period=len(xlist))
 
 
-## f(t) => f(ω) ##
-# Fourier Coefficients
-coefficients = []  # matrix to store coefficients
-for n in range(-N, N + 1):  # orders in c_0, c_1, c_-1, ... c_n, c_-n
-    integrand = lambda t: f(t) * np.exp(-1j * (2 * pi / T) * t * n)
-    coefficients.append(
-        (1 / T) * integrate.quad_vec(integrand, 0, T, limit=2000, full_output=True)[0]
-    )
-    # def integrand_real(t): return np.real(f(t) * np.exp(-1j*(2*pi/T)*t*n))
-    # def integrand_imag(t): return np.imag(f(t) * np.exp(-1j*(2*pi/T)*t*n))
-    # coefficients.append(
-    #     (1/T)*integrate.quad(integrand_real, 0, T, limit=100, full_output=True)[0] +
-    #     (1j/T)*integrate.quad(integrand_imag, 0, T, limit=100, full_output=True)[0])
-    print(
-        str(round(((len(coefficients) - 1) / (2 * N)) * 100, 3))
-        + "% Done with coefficients..."
-    )
+def mpcoefficients(n):
+    def integrand_real(t): return np.real(f(t) * np.exp(-1j * (2 * pi / T) * t * n))
+    def integrand_imag(t): return np.imag(f(t) * np.exp(-1j * (2 * pi / T) * t * n))
+    print("Calculating Coefficients for n = " + str(n))
+    return (1 / T) * integrate.quad(integrand_real, 0, T, limit=2000, full_output=True)[0] + (1j / T) * integrate.quad(integrand_imag, 0, T, limit=2000, full_output=True)[0]
 
-# Creating circles and lines
-# f(ω) => f(t)
-circles = [
-    ax.plot([], [], color=(0, 0, 0, 0.25), linestyle="solid")[0]
-    for i in range(2 * N + 1)
-]  # stores circles drawn each frame
-lines = [
-    ax.plot([], [], color=(0, 0, 0, 0.25), linestyle="solid")[0]
-    for i in range(2 * N + 1)
-]  # stores lines drawn each frame
-ftx, fty = [], []  # stores points' components drawn
-drawn_points = ax.plot(ftx, fty, color=(1, 1, 1, 1), linestyle="solid", linewidth=0.5)[
-    0
-]  # saves points drawn by tip
-current_point = ax.plot([], [], color=(1, 49 / 255, 49 / 255, 0.83))[0]
-theta = np.linspace(0, 2 * pi, 200)
 
 # Create function to animate each frame
 def draw_f(t):  # function to draw frames of animation
@@ -119,23 +92,63 @@ def draw_f(t):  # function to draw frames of animation
     print(str(round(((t + T) / (2 * T)) * 100, 3)) + "% Done with frames...")
     return [ax]
 
+if __name__ == '__main__':
+    st = time.time()
+    with Pool(processes=6) as pool:
+        results = [pool.apply_async(mpcoefficients, args=(n,)) for n in range(-N, N + 1)]
+        # for n in range(-N, N + 1):
+        #     print("Starting Thread for n = " + str(n))
+        #     pool.submit(temp, n, coefficients)
+        coefficients = [r.get() for r in results]
+    print("Time Taken: " + str(time.time() - st))
 
-## Plotting and Saving ##
-# Tidies up graph
-ax.set_xlim(min(xlist) - 200, max(xlist) + 200)
-ax.set_ylim(min(ylist) - 400, max(ylist) + 400)
-ax.set_aspect(1)
-ax.set_axis_off()
+    ## f(t) => f(ω) ##
+    # Fourier Coefficients
+    # st = time.time()
+    # coefficients = []  # matrix to store coefficients
+    # for n in range(-N, N + 1):  # orders in c_0, c_1, c_-1, ... c_n, c_-n
+    #     # integrand = lambda t: f(t) * np.exp(-1j * (2 * pi / T) * t * n)
+    #     # coefficients.append(
+    #     #     (1 / T) * integrate.quad_vec(integrand, 0, T, limit=2000, full_output=True)[0]
+    #     # )
+    #     def integrand_real(t): return np.real(f(t) * np.exp(-1j*(2*pi/T)*t*n))
+    #     def integrand_imag(t): return np.imag(f(t) * np.exp(-1j*(2*pi/T)*t*n))
+    #     coefficients.append(
+    #         (1/T)*integrate.quad(integrand_real, 0, T, limit=2000, full_output=True)[0] +
+    #         (1j/T)*integrate.quad(integrand_imag, 0, T, limit=2000, full_output=True)[0])
+    #     print(
+    #         str(round(((len(coefficients) - 1) / (2 * N)) * 100, 3))
+    #         + "% Done with coefficients..."
+    #     )
+    # print("Time Taken: " + str(time.time() - st))
 
-# Saves to video
-Writer = animate.writers["ffmpeg"]
-writer = Writer(fps=FPS, metadata=dict(artist="Samay Chandna"), bitrate=Bitrate)
-print("Endcoding started")
-time = np.linspace(-T, T, round(2 * T * FPS * (Speed ** -1)))
-anim = animate.FuncAnimation(fig, draw_f, frames=time, interval=5)
-anim.save(
-    "website.mp4",
-    writer=writer,
-    savefig_kwargs=dict(facecolor=(0, 0, 0, 0), edgecolor="none"),
-)
-print("-------------------------------\nCompleted: website.mp4")
+    # Creating circles and lines
+    # f(ω) => f(t)
+    circles = [
+        ax.plot([], [], color=(0, 0, 0, 0.25), linestyle="solid")[0]
+        for i in range(2 * N + 1)
+    ]  # stores circles drawn each frame
+    lines = [
+        ax.plot([], [], color=(0, 0, 0, 0.25), linestyle="solid")[0]
+        for i in range(2 * N + 1)
+    ]  # stores lines drawn each frame
+    ftx, fty = [], []  # stores points' components drawn
+    drawn_points = ax.plot(ftx, fty, color=(0, 0, 1, .5), linestyle="solid", linewidth=0.5)[
+        0
+    ]  # saves points drawn by tip
+    current_point = ax.plot([], [], color=(1, 49 / 255, 49 / 255, 0.83))[0]
+    theta = np.linspace(0, 2 * pi, 200)
+
+
+    ## Plotting and Saving ##
+    # Tidies up graph
+    ax.set_xlim(min(xlist) - 200, max(xlist) + 200)
+    ax.set_ylim(min(ylist) - 400, max(ylist) + 400)
+    ax.set_aspect(1)
+    ax.set_axis_off()
+
+    # Saves to video
+    time = np.linspace(-T, T, round(2 * T * FPS * (Speed ** -1)))
+    anim = animate.FuncAnimation(fig, draw_f, frames=time, interval=5)
+    plt.show()
+    print("-------------------------------\nCompleted: website.mp4")
